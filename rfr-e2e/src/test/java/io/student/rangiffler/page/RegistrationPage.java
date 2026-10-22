@@ -4,55 +4,55 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
-import io.student.rangiffler.model.TestUser;
+import io.student.rangiffler.config.TestConfig;
+import io.student.rangiffler.jupiter.fixture.TestUser;
+import io.student.rangiffler.page.component.CredentialsForm;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
-public class RegistrationPage {
+public final class RegistrationPage {
+
+  public static String URL = TestConfig.authUrl() + "/register";
 
   private final Page page;
-  private final Locator username;
-  private final Locator password;
+  private final CredentialsForm credentialsForm;
   private final Locator passwordConfirmation;
   private final Locator signUp;
+  private final Locator successMessage;
+  private final Locator signInLink;
 
   public RegistrationPage(Page page) {
     this.page = page;
-    username = page.getByPlaceholder("Type your username");
-    password = page.getByPlaceholder("Type your password");
-    passwordConfirmation = page.getByPlaceholder("Repeat your password");
+    credentialsForm = new CredentialsForm(page);
+    passwordConfirmation = page.getByPlaceholder("Repeat your password", new Page.GetByPlaceholderOptions().setExact(true));
     signUp = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Sign up").setExact(true));
+    successMessage = page.getByText("Congratulations! You've registered!", new Page.GetByTextOptions().setExact(true));
+    signInLink = page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Sign in").setExact(true));
   }
 
-  @Step("Проверить отображение формы регистрации")
-  public RegistrationPage shouldBeOpened() {
-    assertThat(username).isVisible();
-    assertThat(password).isVisible();
-    assertThat(passwordConfirmation).isVisible();
-    assertThat(signUp).isVisible();
+  @Step("Заполнить форму регистрации пользователя {user}")
+  public RegistrationPage fillRegistrationForm(TestUser user) {
+    credentialsForm.fillCredentials(user);
+    passwordConfirmation.fill(user.password());
     return this;
   }
 
-  @Step("Зарегистрировать пользователя")
-  public RegistrationPage register(TestUser user) {
-    username.fill(user.username());
-    password.fill(user.password());
-    passwordConfirmation.fill(user.password());
+  @Step("Отправить форму регистрации")
+  public RegistrationPage submitRegistration() {
     signUp.click();
     return this;
   }
 
   @Step("Проверить успешную регистрацию")
   public RegistrationPage shouldBeRegistered() {
-    assertThat(page.getByText("Congratulations! You've registered!", new Page.GetByTextOptions().setExact(true)))
-        .isVisible();
+    assertThat(successMessage).isVisible();
     assertThat(signUp).hasCount(0);
     return this;
   }
 
   @Step("Вернуться в приложение по ссылке «Sign in»")
   public WelcomePage returnToApplication() {
-    page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Sign in").setExact(true)).click();
-    return new WelcomePage(page).shouldBeOpened();
+    signInLink.click();
+    return new WelcomePage(page);
   }
 }

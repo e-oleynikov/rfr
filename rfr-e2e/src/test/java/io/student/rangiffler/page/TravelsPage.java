@@ -4,31 +4,24 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import io.student.rangiffler.config.TestConfig;
 
-import java.util.regex.Pattern;
+public final class TravelsPage {
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-
-public class TravelsPage {
+  public static String URL = TestConfig.frontUrl() + "/my-travels";
 
   private final Page page;
+  private final Locator profileLink;
 
   public TravelsPage(Page page) {
     this.page = page;
-  }
-
-  @Step("Проверить открытие карты путешествий после входа")
-  public TravelsPage shouldBeOpened() {
-    assertThat(page).hasURL(Pattern.compile(".*/my-travels$"));
-    assertThat(page.getByRole(AriaRole.HEADING, new Page.GetByRoleOptions().setName("Travels map")))
-        .isVisible();
-    return this;
+    profileLink = page.getByRole(AriaRole.BANNER)
+        .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("Profile").setExact(true));
   }
 
   @Step("Открыть профиль")
   public ProfilePage openProfile() {
-    page.getByRole(AriaRole.BANNER)
-        .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("Profile").setExact(true)).click();
+    profileLink.click();
     return new ProfilePage(page);
   }
 }

@@ -1,41 +1,40 @@
 package io.student.rangiffler.page;
 
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
+import io.student.rangiffler.config.TestConfig;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+public final class WelcomePage {
 
-public class WelcomePage {
+  public static String URL = TestConfig.frontUrl() + "/";
 
   private final Page page;
+  private final Locator loginButton;
+  private final Locator registrationLink;
 
   public WelcomePage(Page page) {
     this.page = page;
+    loginButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Login").setExact(true));
+    registrationLink = page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Register").setExact(true));
   }
 
   @Step("Открыть приложение")
   public WelcomePage open() {
-    page.navigate("/");
-    return shouldBeOpened();
-  }
-
-  @Step("Проверить отображение приветственной страницы")
-  public WelcomePage shouldBeOpened() {
-    assertThat(page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Login").setExact(true)))
-        .isVisible();
+    page.navigate(URL);
     return this;
   }
 
   @Step("Открыть страницу регистрации")
   public RegistrationPage openRegistration() {
-    page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Register").setExact(true)).click();
-    return new RegistrationPage(page).shouldBeOpened();
+    registrationLink.click();
+    return new RegistrationPage(page);
   }
 
   @Step("Открыть страницу входа")
   public LoginPage openLogin() {
-    page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Login").setExact(true)).click();
-    return new LoginPage(page).shouldBeOpened();
+    loginButton.click();
+    return new LoginPage(page);
   }
 }

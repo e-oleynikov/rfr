@@ -1,10 +1,11 @@
-package io.student.rangiffler.extension;
+package io.student.rangiffler.jupiter.extension;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import io.student.rangiffler.config.TestConfig;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -21,9 +22,9 @@ public class BrowserExtension implements BeforeEachCallback, AfterEachCallback, 
     Playwright playwright = Playwright.create();
     context.getStore(NAMESPACE).put(Playwright.class, playwright);
     Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-        .setHeadless(!Boolean.parseBoolean(System.getenv("RFR_HEADED"))));
+        .setHeadless(!TestConfig.headed()));
     BrowserContext browserContext = browser.newContext(new Browser.NewContextOptions()
-        .setBaseURL(System.getenv().getOrDefault("RFR_FRONT_URL", "http://localhost:3001")));
+        .setBaseURL(TestConfig.frontUrl()));
     context.getStore(NAMESPACE).put(BrowserContext.class, browserContext);
     context.getStore(NAMESPACE).put(Page.class, browserContext.newPage());
   }
