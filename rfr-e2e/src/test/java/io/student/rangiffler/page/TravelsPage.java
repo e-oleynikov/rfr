@@ -5,6 +5,7 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
 import io.student.rangiffler.config.TestConfig;
+import io.student.rangiffler.ui.page.ProfilePage;
 
 public final class TravelsPage {
 

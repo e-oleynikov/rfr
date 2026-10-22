@@ -26,9 +26,31 @@ export RFR_DB_PASSWORD
 ./gradlew :rfr-e2e:test --tests '*LoginTest'
 ```
 
+`LoginNegativeTest` проверяет неверный пароль и несуществующего пользователя.
+В обоих случаях ожидается `Bad credentials` в `.form__error` на странице входа.
+Для детерминированного текста Spring Security тесты задают `Accept-Language: en-US`.
+Второй сценарий не создаёт пользователя и проверяет отсутствие записи в БД.
+
+```bash
+./gradlew :rfr-e2e:test --tests '*LoginNegativeTest'
+```
+
 Тестовый метод принимает `@User TestUser user`. На классе нужно зарегистрировать
 `@ExtendWith({TestUserExtension.class, BrowserExtension.class})`.
 `@User` всегда означает создание пользователя в auth-БД, без режима «только данные».
+
+`ProfileTest` проверяет сохранение имени, фамилии, страны Germany и аватара после
+перезагрузки, а также возврат сохранённых значений по Reset. Страны фиксированы,
+изображения находятся в `src/test/resources/images/`. Каждый сценарий использует
+отдельного пользователя через `@User`.
+
+```bash
+./gradlew :rfr-e2e:test --tests '*ProfileTest'
+```
+
+`ui/page/ProfilePage` отделяет заполнение данных, выбор страны, загрузку аватара,
+Save, Reset и проверки. `clickSave()` дожидается ответа GraphQL `UpdateUser`,
+чтобы последующий reload не опередил сохранение.
 
 Page Object скрывают локаторы, действия и ожидающие проверки Playwright.
 `BrowserExtension` передаёт тесту `Page` с отдельным браузерным контекстом.

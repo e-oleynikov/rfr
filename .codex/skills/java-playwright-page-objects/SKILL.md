@@ -1,5 +1,5 @@
 ---
-name: java-playwright-page-objects
+name: rfr-page-objects
 description: Создание и рефакторинг Page Object и переиспользуемых UI-компонентов для автотестов на Java, Playwright и Allure. Используй при запросах создать PO, вынести взаимодействия со страницей или привести существующие Page Object к этим правилам.
 ---
 
@@ -32,6 +32,35 @@ description: Создание и рефакторинг Page Object и пере�
 - Не заменяй ожидающие проверки на `assertTrue(locator.isVisible())`, мгновенное чтение `textContent()` с JUnit-проверкой или ручные циклы ожидания. Не добавляй `Thread.sleep`, фиксированные задержки, клики, `fill`, навигацию или подготовку данных в методы `should...`.
 - Метод проверки может содержать несколько связанных assertions, например URL, заголовок и ожидаемый логин. Он не должен менять состояние страницы.
 
+## MUI Select и сохранение профиля
+
+- В форме профиля `Location` — MUI Select с ролью `COMBOBOX` и точным доступным именем `Location`. Открывай его кликом; `selectOption()` предназначен для нативного `<select>` и здесь не подходит.
+- После открытия выбирай `OPTION` с фильтром `setHas(...)` по вложенному `IMG` с точным именем страны. У option имя складывается из `alt` флага и текста, например `France France`, поэтому не ищи его по точному имени `France` и не привязывай локатор к удвоенному тексту. Меню MUI может находиться в портале вне формы — ищи варианты от `page`.
+
+```java
+// Поля инициализируются в конструкторе.
+locationSelect = page.getByRole(AriaRole.COMBOBOX,
+    new Page.GetByRoleOptions().setName("Location").setExact(true));
+countryOptions = page.getByRole(AriaRole.OPTION);
+
+// В методе выбора страны:
+locationSelect.click();
+countryOptions.filter(new Locator.FilterOptions().setHas(
+    page.getByRole(AriaRole.IMG,
+        new Page.GetByRoleOptions().setName(country).setExact(true)))).click();
+```
+
+## Завершение асинхронных бизнес-действий
+
+- Для каждого действия, запускающего асинхронную операцию, определяй, от какого результата зависит следующий шаг. Сохранение, удаление, загрузка файла, отправка приглашения и другие изменения данных должны дождаться нужной операции, если последующий reload, переход, Reset, другое действие или проверка могут её опередить. Это общее правило для всех PO, а не только профиля.
+- Auto-wait перед кликом гарантирует готовность элемента к действию, но не завершение вызванного им запроса. Если UI обновляется оптимистично или сохраняет введённые значения до ответа сервера, появления этих значений недостаточно для синхронизации сохранения.
+- Ожидание завершения операции размещай в методе самого бизнес-действия. Регистрируй его до запуска действия через `page.waitForResponse(predicate, trigger::click)` или соответствующий API Playwright. Не начинай ждать ответ после клика: быстрый ответ можно пропустить.
+- Для GraphQL сопоставляй endpoint `/graphql`, HTTP-метод и точный `operationName` из тела запроса; одного URL недостаточно, поскольку разные операции используют тот же endpoint. При текстовом сопоставлении учитывай пробелы в JSON и отсутствие тела запроса. Если одинаковая операция может выполняться параллельно, уточняй запрос по переменным или другому идентификатору действия.
+- Для REST сопоставляй HTTP-метод, конкретный endpoint и при необходимости идентификатор сущности. Для навигации или локального изменения состояния используй соответствующий механизм завершения действия, а не выдуманный сетевой запрос.
+- При необходимости дождаться полного тела ответа вызывай `finished()` у полученного `Response`. Ответ сервера ещё не гарантирует завершение фоновой задачи или обновление UI: когда это существенно, дождись соответствующего наблюдаемого результата. Бизнес-проверки оставляй в отдельных методах `should...`; HTTP 200 и сам факт ответа не подтверждают отсутствие GraphQL errors или успешность операции.
+- Не добавляй сетевые ожидания механически к каждому клику, вводу или чтению. Если web-first assertion проверяет фактический результат операции и надёжно синхронизирует сценарий, дополнительное ожидание запроса не требуется. Не используй `networkidle`, фиксированные задержки или универсальные методы «дождаться всех запросов» вместо ожидания конкретного результата.
+- Частный пример: `clickSave()` / `saveProfile()` ждёт ответ `UpdateUser`, чтобы следующий `reload()` не прочитал старый профиль. Пример кода ниже иллюстрирует это общее правило.
+
 ## Allure и параметры
 
 - Каждый публичный метод действия или проверки PO и UI-компонента обязательно помечай `@Step`. Конструкторы не являются шагами. Не создавай публичные технические методы для обхода этого правила.
@@ -52,10 +81,15 @@ import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
 import io.student.rangiffler.config.TestConfig;
 
+import java.util.regex.Pattern;
+
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 public final class ProfilePage {
   public static String URL = TestConfig.frontUrl() + "/profile";
+
+  private static final Pattern UPDATE_USER_OPERATION =
+      Pattern.compile("\"operationName\"\\s*:\\s*\"UpdateUser\"");
 
   private final Page page;
   private final Locator firstname;
@@ -87,7 +121,12 @@ public final class ProfilePage {
 
   @Step("Сохранить профиль")
   public ProfilePage saveProfile() {
-    saveButton.click();
+    page.waitForResponse(response -> {
+      String body = response.request().postData();
+      return response.url().endsWith("/graphql")
+          && "POST".equals(response.request().method())
+          && body != null && UPDATE_USER_OPERATION.matcher(body).find();
+    }, saveButton::click).finished();
     return this;
   }
 
