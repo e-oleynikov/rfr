@@ -9,7 +9,7 @@ public class SimpleTest {
 
   @Test
   void simpleTest() {
-    Allure.step("Simple test", () -> {
+    Allure.step("Проверить сложение чисел", () -> {
       assertEquals(2, 1 + 1);
     });
   }
