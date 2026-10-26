@@ -7,6 +7,12 @@ wrapper {
     gradleVersion = '9.7.1'
 }
 
+tasks.register('e2eTest') {
+    group = 'verification'
+    description = 'Runs the tests in the rfr-e2e module'
+    dependsOn ':rfr-e2e:test'
+}
+
 tasks.register('runAll', Exec) {
     group = 'application'
     description = 'Runs the auth and API backends in parallel'

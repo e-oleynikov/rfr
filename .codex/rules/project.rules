@@ -1,0 +1,64 @@
+# Правила относятся к локальной работе в этом проекте.
+# RTK не должен менять решение для вложенной команды.
+wrappers = [[]]
+for executable in ["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"]:
+    wrappers.append([executable])
+    wrappers.append([executable, "bypass"])
+    wrappers.append([executable, "proxy"])
+
+for wrapper in wrappers:
+    for executable in ["rm", "grm", "/bin/rm", "/usr/bin/rm", "/opt/homebrew/bin/grm", "/usr/local/bin/grm"]:
+        prefix_rule(
+            pattern = wrapper + [executable],
+            decision = "forbidden",
+            justification = "Удаление запрещено: переместите файл или каталог в .<имя>.<время>.bak",
+        )
+
+    for executable in ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"]:
+        prefix_rule(
+            pattern = wrapper + [executable, "push"],
+            decision = "forbidden",
+            justification = "Git push запрещён: оставьте изменения и коммиты локальными",
+        )
+        for directory in [".", "rfr-auth", "rfr-api", "rfr-e2e", "rfr-gql-client", "/Users/egoroleynikov/IdeaProjects/rfr"]:
+            prefix_rule(
+                pattern = wrapper + [executable, "-C", directory, "push"],
+                decision = "forbidden",
+                justification = "Git push запрещён: оставьте изменения и коммиты локальными",
+            )
+
+    for executable in ["./gradlew", "../gradlew", "/Users/egoroleynikov/IdeaProjects/rfr/gradlew"]:
+        prefix_rule(
+            pattern = wrapper + [executable, [
+                "runAll", ":runAll", "e2eTest", ":e2eTest", "build",
+                "bootRun", "test", "compileTestJava", "testClasses", "installPlaywright",
+                ":rfr-auth:bootRun", ":rfr-api:bootRun",
+                ":rfr-auth:build", ":rfr-api:build",
+                ":rfr-auth:test", ":rfr-api:test", ":rfr-e2e:test",
+                ":rfr-e2e:compileTestJava", ":rfr-e2e:testClasses",
+                ":rfr-e2e:installPlaywright",
+            ]],
+            decision = "allow",
+            justification = "Разрешены локальный запуск бэкендов, сборка и проверки проекта",
+        )
+
+    prefix_rule(
+        pattern = wrapper + ["npm", "run", ["dev", "preview", "lint", "build"]],
+        decision = "allow",
+        justification = "Разрешены запуск и проверки интерфейса из rfr-gql-client",
+    )
+    prefix_rule(
+        pattern = wrapper + ["npm", "--prefix", "rfr-gql-client", "run", ["dev", "preview", "lint", "build"]],
+        decision = "allow",
+        justification = "Разрешены запуск и проверки интерфейса из корня проекта",
+    )
+    prefix_rule(
+        pattern = wrapper + ["docker", "compose", "up", "-d", "mysql"],
+        decision = "allow",
+        justification = "Разрешён запуск локальной MySQL из docker-compose.yml",
+    )
+    prefix_rule(
+        pattern = wrapper + ["bash", "localenv.sh"],
+        decision = "allow",
+        justification = "Разрешён проектный скрипт запуска MySQL",
+    )
