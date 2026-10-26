@@ -36,7 +36,7 @@ rfr/
 │   ├── Реальные контроллеры для пользователей и стран
 │   └── Flyway миграции БД
 ├── rfr-gql-client/        # React + TypeScript Frontend (готов)
-└── rfr-e2e/               # E2E тесты: JUnit 6 + Playwright + Allure 3 (заготовка)
+└── rfr-e2e/               # E2E тесты: регистрация, вход, негативные сценарии входа, профиль
 ```
 
 **Порты:**
@@ -100,7 +100,17 @@ cd rfr-api
 
 rfr-api стартанет на порту 8081: http://localhost:8081/graphql
 
-GraphiQL интерфейс доступен по адресу: http://localhost:8081/graphiql
+GraphiQL включен по адресу http://localhost:8081/graphiql, но открытие страницы требует
+Bearer-токен в заголовке запроса; обычный переход из браузера без токена вернет 401.
+
+Вместо отдельных запусков auth и API можно запустить оба сервера из корня в одном терминале:
+
+```bash
+./gradlew runAll
+```
+
+MySQL должен быть готов заранее. Логи обоих серверов выводятся в общий терминал;
+`Ctrl+C` останавливает оба сервера. Интерфейс запускается отдельно.
 
 #### 4. Обнови зависимости и запускай фронт:
 
@@ -118,6 +128,20 @@ npm run dev
 
 Mock контроллеры в rfr-api будут возвращать статические данные из JSON файлов для ленты фотографий.
 Реальная работа с пользователями и странами уже реализована через базу данных.
+
+#### 6. Запусти UI-тесты
+
+На запущенном локальном окружении, из корня проекта:
+
+```bash
+./gradlew :rfr-e2e:installPlaywright
+./gradlew e2eTest
+```
+
+Первая команда устанавливает Chromium перед первым запуском и после обновления Playwright.
+Вторая запускает только E2E-тесты; серверы и БД она не запускает. Тесты создают и удаляют
+собственные данные в настроенной MySQL. Настройки, запуск отдельных классов и устройство
+фикстур описаны в [README тестового модуля](rfr-e2e/README.md).
 
 
 # Что дальше?
@@ -481,14 +505,14 @@ message UsersResponse {
 (`JwtAuthenticationConverter` в `RangifflerApiConfiguration`). `id_token` предназначен фронтенду (`aud` = client_id),
 поэтому API его отвергает с 401. Фронтенд использует `id_token` только как `id_token_hint` при logout.
 
-   Access token живет 10 минут. При logout фронтенд отзывает его через `POST /oauth2/revoke` (RFC 7009, публичный клиент
+   Access token живет 30 минут. При logout фронтенд отзывает его через `POST /oauth2/revoke` (RFC 7009, публичный клиент
 идентифицируется по `client_id`), а затем вызывает OIDC logout. Учтите: access token - самодостаточный JWT, `rfr-api`
 проверяет его локально по подписи и не знает об отзыве, поэтому отозванный токен продолжает приниматься API до `exp`.
 Отзыв делает недействительной авторизацию на стороне `rfr-auth`; мгновенный отказ API потребовал бы opaque-токенов
 и introspection.
 
-   Для локального тестирования вы можете открыть страницу
-GraphiQL (`spring.graphql.graphiql.enabled: true` уже включен в `application.yml`):
+   GraphiQL включен (`spring.graphql.graphiql.enabled: true` в `application.yml`), но текущая конфигурация
+требует аутентификации для открытия самой страницы, как и для остальных запросов, кроме `POST /graphql`:
 ```java
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -497,15 +521,17 @@ GraphiQL (`spring.graphql.graphiql.enabled: true` уже включен в `appl
             .authorizeHttpRequests(customizer ->
                 customizer
                     .requestMatchers(HttpMethod.POST, "/graphql").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/graphiql/**").permitAll()
                     .anyRequest().authenticated()
             )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
+                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+            ));
         return http.build();
     }
 ```
-   Сами запросы из GraphiQL все равно потребуют токен - добавьте заголовок `Authorization: Bearer <access_token>` в разделе Headers
-(токен можно взять в `localStorage` фронта после логина).
+   Для открытия страницы нужен заголовок `Authorization: Bearer <access_token>` в запросе `GET /graphiql`.
+Сами запросы из GraphiQL тоже требуют этот заголовок — добавьте его в разделе Headers.
+Токен можно взять в `localStorage` фронта после логина.
 
 ###### GraphQL контроллеры и @SchemaMapping
 
