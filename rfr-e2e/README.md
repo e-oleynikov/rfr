@@ -11,8 +11,8 @@
 Задача использует версию Playwright из `rfr-e2e/build.gradle`, требует доступа
 к серверу загрузки браузеров и не выполняется автоматически перед тестами.
 
-Перед запуском задайте пароль локальной MySQL через `RFR_DB_PASSWORD`, как описано
-в разделе [«Настройки тестов»](#настройки-тестов).
+Для локальной MySQL из Docker Compose пароль уже задан по умолчанию.
+Для другой БД переопределите `RFR_DB_PASSWORD`, как описано в разделе [«Настройки тестов»](#настройки-тестов).
 
 Из корня репозитория:
 
@@ -125,14 +125,15 @@ Gradle передаёт свойства `rfr.*` в тестовую JVM; тот
 | `rfr.headed` | `RFR_HEADED` | `false`; `true` открывает видимый Chromium |
 | `rfr.db.url` | `RFR_DB_URL` | `jdbc:mysql://localhost:3306/?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=10000` |
 | `rfr.db.user` | `RFR_DB_USER` | `root` |
-| `rfr.db.password` | `RFR_DB_PASSWORD` | Обязательная, fallback отсутствует |
+| `rfr.db.password` | `RFR_DB_PASSWORD` | Локальный тестовый пароль из `docker-compose.yml` |
 
 Тайм-аут подключения к БД по умолчанию — 5 секунд, чтения — 10 секунд.
 Каталоги `rangiffler-auth` и `rangiffler-api` выбирает `data/db/Databases`;
 учётной записи нужен доступ к обеим схемам на одном сервере MySQL.
-Тесты не читают пароль из конфигураций приложений или `localenv.sh`.
+Пароль по умолчанию совпадает с локальным паролем в `docker-compose.yml`.
+Тесты не читают этот файл автоматически; при смене пароля задайте `RFR_DB_PASSWORD`.
 
-В zsh пароль можно ввести без отображения и сохранения в истории:
+Для другой БД в zsh пароль можно ввести без отображения и сохранения в истории:
 
 ```zsh
 read -rs 'RFR_DB_PASSWORD?MySQL password: '

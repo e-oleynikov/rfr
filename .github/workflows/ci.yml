@@ -7,9 +7,16 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    outputs:
+      auth: ${{ steps.changes.outputs.auth }}
+      api: ${{ steps.changes.outputs.api }}
+      e2e: ${{ steps.changes.outputs.e2e }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      java: ${{ steps.changes.outputs.java }}
+      run_e2e: ${{ steps.changes.outputs.run_e2e }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -25,8 +32,13 @@ jobs:
           api=false
           e2e=false
           frontend=false
+          run_e2e=false
           git diff --name-only --no-renames -z "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
           while IFS= read -r -d '' path; do
+            case "$path" in
+              rfr-auth/*|rfr-api/*|rfr-e2e/*|rfr-gql-client/*|.github/workflows/ci.yml|build.gradle|build.gradle.kts|settings.gradle|settings.gradle.kts|gradle.properties|gradle.lockfile|gradlew|gradlew.bat|gradle/*|buildSrc/*|build-logic/*)
+                run_e2e=true ;;
+            esac
             case "$path" in
               *.md|*.mdx|*.rst|docs/*|*/docs/*) continue ;;
               .github/workflows/*)
@@ -47,9 +59,17 @@ jobs:
           fi
           printf 'auth=%s\napi=%s\ne2e=%s\nfrontend=%s\njava=%s\n' \
             "$auth" "$api" "$e2e" "$frontend" "$java" >> "$GITHUB_OUTPUT"
+          printf 'run_e2e=%s\n' "$run_e2e" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v6
-        if: steps.changes.outputs.java == 'true'
+        if: needs.changes.outputs.java == 'true'
         with:
           distribution: temurin
           java-version: '25'
@@ -62,11 +82,11 @@ jobs:
             gradle/*.toml
 
       - name: Build backends and compile E2E
-        if: steps.changes.outputs.java == 'true'
+        if: needs.changes.outputs.java == 'true'
         env:
-          AUTH: ${{ steps.changes.outputs.auth }}
-          API: ${{ steps.changes.outputs.api }}
-          E2E: ${{ steps.changes.outputs.e2e }}
+          AUTH: ${{ needs.changes.outputs.auth }}
+          API: ${{ needs.changes.outputs.api }}
+          E2E: ${{ needs.changes.outputs.e2e }}
         run: |
           tasks=()
           if [[ "$AUTH" == true ]]; then
@@ -81,23 +101,131 @@ jobs:
           ./gradlew "${tasks[@]}" --no-daemon
 
       - uses: actions/setup-node@v7
-        if: steps.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend == 'true'
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: rfr-gql-client/package-lock.json
 
       - name: Install frontend dependencies
-        if: steps.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm ci
 
       - name: Lint frontend
-        if: steps.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm run lint
 
       - name: Build frontend
-        if: steps.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm run build
+
+  e2e:
+    needs: [changes, build]
+    if: needs.changes.outputs.run_e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4.7
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd='MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=TCP -h 127.0.0.1 -u root -e "SELECT 1" > /dev/null'
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --health-start-period=30s
+    env:
+      VITE_AUTH_URL: http://localhost:9001
+      VITE_API_URL: http://localhost:8081
+      VITE_FRONT_HOST: localhost
+      VITE_FRONT_URL: http://localhost:3001
+      VITE_CLIENT_ID: client
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+          cache-dependency-path: |
+            **/*.gradle*
+            **/gradle.properties
+            **/gradle.lockfile
+            gradle/wrapper/gradle-wrapper.properties
+            gradle/*.toml
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: rfr-gql-client/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: rfr-gql-client
+        run: npm ci
+
+      - name: Install Chromium and system dependencies
+        run: ./gradlew :rfr-e2e:installPlaywrightWithDeps --no-daemon
+
+      - name: Start backends
+        run: ./gradlew runAll > "$RUNNER_TEMP/backends.log" 2>&1 &
+
+      - name: Start frontend
+        working-directory: rfr-gql-client
+        run: npm run dev -- --strictPort > "$RUNNER_TEMP/frontend.log" 2>&1 &
+
+      - name: Wait for application ports
+        run: |
+          node <<'NODE'
+          const net = require('node:net');
+          const { setTimeout: delay } = require('node:timers/promises');
+          const deadline = Date.now() + 180_000;
+          async function waitForPort(port) {
+            while (Date.now() < deadline) {
+              const ready = await new Promise(resolve => {
+                const socket = net.createConnection({ host: 'localhost', port });
+                const finish = result => { socket.destroy(); resolve(result); };
+                socket.setTimeout(1000);
+                socket.once('connect', () => finish(true));
+                socket.once('error', () => finish(false));
+                socket.once('timeout', () => finish(false));
+              });
+              if (ready) {
+                console.log(`Port ${port} is ready`);
+                return;
+              }
+              await delay(500);
+            }
+            throw new Error(`Timed out waiting for port ${port}`);
+          }
+          Promise.all([9001, 8081, 3001].map(waitForPort)).catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Run E2E tests
+        run: ./gradlew e2eTest --no-daemon
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: allure-results
+          path: rfr-e2e/build/allure-results
+
+      - name: Upload application logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-application-logs
+          path: |
+            ${{ runner.temp }}/backends.log
+            ${{ runner.temp }}/frontend.log
