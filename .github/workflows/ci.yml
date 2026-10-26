@@ -135,7 +135,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd='MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=TCP -h 127.0.0.1 -u root -e "SELECT 1" > /dev/null'
+          --health-cmd="MYSQL_PWD=\"$MYSQL_ROOT_PASSWORD\" mysql --protocol=TCP -h 127.0.0.1 -u root -e 'SELECT 1' > /dev/null"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
