@@ -7,6 +7,17 @@ wrapper {
     gradleVersion = '9.7.1'
 }
 
+tasks.register('runAll', Exec) {
+    group = 'application'
+    description = 'Runs the auth and API backends in parallel'
+    // Parallel scheduling must be enabled before the child Gradle build starts.
+    commandLine './gradlew', '--parallel', '--max-workers=2',
+        ':rfr-auth:bootRun', ':rfr-api:bootRun'
+    if (gradle.startParameter.offline) {
+        args '--offline'
+    }
+}
+
 
 allprojects {
     apply plugin: 'java'
