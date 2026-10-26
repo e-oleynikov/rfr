@@ -41,3 +41,4 @@ docs/
 RTK.md
 .codex/hooks.json
 .codex/hooks.json.bak*
+.codex/hook-state/

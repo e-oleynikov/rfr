@@ -12,30 +12,92 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed modules
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          auth=false
+          api=false
+          e2e=false
+          frontend=false
+          git diff --name-only --no-renames -z "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.md|*.mdx|*.rst|docs/*|*/docs/*) continue ;;
+              .github/workflows/*)
+                auth=true; api=true; e2e=true; frontend=true ;;
+              build.gradle|build.gradle.kts|settings.gradle|settings.gradle.kts|gradle.properties|gradle.lockfile|gradlew|gradlew.bat|gradle/*|buildSrc/*|build-logic/*)
+                auth=true; api=true; e2e=true ;;
+              rfr-api/src/main/resources/graphql/*)
+                api=true; frontend=true ;;
+              rfr-auth/*) auth=true ;;
+              rfr-api/*) api=true ;;
+              rfr-e2e/*) e2e=true ;;
+              rfr-gql-client/*) frontend=true ;;
+            esac
+          done < "$RUNNER_TEMP/changed-files"
+          java=false
+          if [[ "$auth" == true || "$api" == true || "$e2e" == true ]]; then
+            java=true
+          fi
+          printf 'auth=%s\napi=%s\ne2e=%s\nfrontend=%s\njava=%s\n' \
+            "$auth" "$api" "$e2e" "$frontend" "$java" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v6
+        if: steps.changes.outputs.java == 'true'
         with:
           distribution: temurin
           java-version: '25'
           cache: gradle
+          cache-dependency-path: |
+            **/*.gradle*
+            **/gradle.properties
+            **/gradle.lockfile
+            gradle/wrapper/gradle-wrapper.properties
+            gradle/*.toml
 
       - name: Build backends and compile E2E
-        run: ./gradlew :rfr-auth:build :rfr-api:build :rfr-e2e:testClasses --no-daemon
+        if: steps.changes.outputs.java == 'true'
+        env:
+          AUTH: ${{ steps.changes.outputs.auth }}
+          API: ${{ steps.changes.outputs.api }}
+          E2E: ${{ steps.changes.outputs.e2e }}
+        run: |
+          tasks=()
+          if [[ "$AUTH" == true ]]; then
+            tasks+=(':rfr-auth:build')
+          fi
+          if [[ "$API" == true ]]; then
+            tasks+=(':rfr-api:build')
+          fi
+          if [[ "$E2E" == true ]]; then
+            tasks+=(':rfr-e2e:testClasses')
+          fi
+          ./gradlew "${tasks[@]}" --no-daemon
 
       - uses: actions/setup-node@v7
+        if: steps.changes.outputs.frontend == 'true'
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: rfr-gql-client/package-lock.json
 
       - name: Install frontend dependencies
+        if: steps.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm ci
 
       - name: Lint frontend
+        if: steps.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm run lint
 
       - name: Build frontend
+        if: steps.changes.outputs.frontend == 'true'
         working-directory: rfr-gql-client
         run: npm run build
