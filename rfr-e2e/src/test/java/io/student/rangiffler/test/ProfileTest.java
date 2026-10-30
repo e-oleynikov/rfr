@@ -4,7 +4,7 @@ import com.microsoft.playwright.Page;
 import io.qameta.allure.Feature;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.extension.BrowserExtension;
-import io.student.rangiffler.jupiter.extension.TestUserExtension;
+import io.student.rangiffler.jupiter.extension.UserExtension;
 import io.student.rangiffler.jupiter.fixture.TestUser;
 import io.student.rangiffler.page.WelcomePage;
 import io.student.rangiffler.ui.page.ProfilePage;
@@ -19,7 +19,7 @@ import java.nio.file.Path;
 import java.util.Base64;
 
 @Feature("Профиль")
-@ExtendWith({TestUserExtension.class, BrowserExtension.class})
+@ExtendWith({UserExtension.class, BrowserExtension.class})
 public class ProfileTest {
 
   private static final String SAVED_COUNTRY = "Germany";

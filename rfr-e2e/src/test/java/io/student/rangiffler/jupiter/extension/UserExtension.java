@@ -1,22 +1,21 @@
 package io.student.rangiffler.jupiter.extension;
 
 import io.student.rangiffler.jupiter.annotation.User;
-import io.student.rangiffler.data.TestUserRepository;
-import io.student.rangiffler.jupiter.fixture.UserFixture;
 import io.student.rangiffler.jupiter.fixture.TestUser;
-import io.student.rangiffler.utils.RandomDataUtils;
+import io.student.rangiffler.jupiter.fixture.UserFixture;
+import io.student.rangiffler.jupiter.fixture.UserRequest;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionConfigurationException;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
 import java.lang.reflect.Parameter;
 
-public class TestUserExtension implements BeforeEachCallback, ParameterResolver {
+public class UserExtension implements BeforeEachCallback, ParameterResolver {
 
   private static final ExtensionContext.Namespace NAMESPACE =
-      ExtensionContext.Namespace.create(TestUserExtension.class);
+      ExtensionContext.Namespace.create(UserExtension.class);
 
   @Override
   public void beforeEach(ExtensionContext context) {
@@ -28,7 +27,8 @@ public class TestUserExtension implements BeforeEachCallback, ParameterResolver 
       if (parameters[index].getType() != TestUser.class) {
         throw new ExtensionConfigurationException("@User is supported only for TestUser parameters");
       }
-      UserFixture fixture = new UserFixture(new TestUserRepository(), RandomDataUtils.randomUser());
+      UserRequest request = UserRequest.from(parameters[index].getAnnotation(User.class));
+      UserFixture fixture = request.fixture();
       // Keep the fixture in the method store: JUnit 6 closes it even if create() fails.
       context.getStore(NAMESPACE).put(index, fixture);
       fixture.create();

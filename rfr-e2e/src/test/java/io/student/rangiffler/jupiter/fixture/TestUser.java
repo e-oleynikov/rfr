@@ -1,6 +1,33 @@
 package io.student.rangiffler.jupiter.fixture;
 
-public record TestUser(String username, String password) {
+import java.util.List;
+import java.util.stream.Stream;
+
+public record TestUser(
+    String username,
+    String password,
+    List<TestUser> friends,
+    List<TestUser> incomingInvitationSenders
+) {
+
+  public TestUser {
+    friends = List.copyOf(friends);
+    incomingInvitationSenders = List.copyOf(incomingInvitationSenders);
+  }
+
+  public TestUser(String username, String password) {
+    this(username, password, List.of(), List.of());
+  }
+
+  public TestUser withFriend(TestUser friend) {
+    return new TestUser(username, password,
+        Stream.concat(friends.stream(), Stream.of(friend)).toList(), incomingInvitationSenders);
+  }
+
+  public TestUser withIncomingInvitationSender(TestUser sender) {
+    return new TestUser(username, password, friends,
+        Stream.concat(incomingInvitationSenders.stream(), Stream.of(sender)).toList());
+  }
 
   @Override
   public String toString() {
