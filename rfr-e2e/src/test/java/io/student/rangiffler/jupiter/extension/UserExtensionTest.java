@@ -7,6 +7,7 @@ import io.student.rangiffler.data.db.Friendships;
 import io.student.rangiffler.data.db.Invitations;
 import io.student.rangiffler.data.db.Jdbc;
 import io.student.rangiffler.data.db.Profile;
+import io.student.rangiffler.jupiter.fixture.UserRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,8 @@ class UserExtensionTest {
       assertEquals(List.of("1", "3"), prepared.stream().map(entry -> entry.get("parameter")).toList());
     }
     int expectedAccounts = target == UserExtensionTargets.RelatedUser.class ? 6
-        : target == UserExtensionTargets.MultipleUsers.class ? 5 : 1;
+        : target == UserExtensionTargets.MultipleUsers.class ? 5
+        : target == UserExtensionTargets.OutgoingInvitation.class ? 2 : 1;
     assertCleaned(entries, expectedAccounts, reporter);
   }
 
@@ -85,7 +87,14 @@ class UserExtensionTest {
     Throwable failure = assertFailure(results, expected);
     assertEquals(target == UserExtensionTargets.WrongType.class
         ? "@User is supported only for TestUser parameters"
+        : target == UserExtensionTargets.NegativeOutgoingInvitations.class
+        ? "User outcomeInvitations must be non-negative"
         : "User friends and incomingInvitations must be non-negative", failure.getMessage());
+    if (target == UserExtensionTargets.NegativeOutgoingInvitations.class) {
+      // Request validation precedes fixture construction, Store registration and create().
+      assertEquals(UserRequest.class.getName(), failure.getStackTrace()[0].getClassName());
+      assertEquals("<init>", failure.getStackTrace()[0].getMethodName());
+    }
     var entries = entries(results, reporter);
     assertEquals(List.of("beforeStoreClose"), phases(entries));
     assertCleaned(entries, 0, reporter);
@@ -165,7 +174,8 @@ class UserExtensionTest {
 
   private void assertCleaned(List<Map<String, String>> entries, int expectedAccounts, TestReporter reporter) {
     var usernames = entries.stream().filter(entry -> entry.containsKey("username"))
-        .flatMap(entry -> Stream.of(entry.get("username"), entry.get("friends"), entry.get("senders")))
+        .flatMap(entry -> Stream.of(entry.get("username"), entry.get("friends"), entry.get("senders"),
+            entry.get("invitees")))
         .flatMap(value -> Arrays.stream(value.split("[\\[\\],]")))
         .filter(value -> !value.isBlank()).distinct().toList();
     assertEquals(expectedAccounts, usernames.size(), "All owned users must be recorded before cleanup");
@@ -189,12 +199,12 @@ class UserExtensionTest {
 
   static Stream<Class<?>> successfulTargets() {
     return Stream.of(UserExtensionTargets.DefaultUser.class, UserExtensionTargets.RelatedUser.class,
-        UserExtensionTargets.MultipleUsers.class);
+        UserExtensionTargets.MultipleUsers.class, UserExtensionTargets.OutgoingInvitation.class);
   }
 
   static Stream<Class<?>> invalidTargets() {
     return Stream.of(UserExtensionTargets.WrongType.class, UserExtensionTargets.NegativeFriends.class,
-        UserExtensionTargets.NegativeInvitations.class);
+        UserExtensionTargets.NegativeInvitations.class, UserExtensionTargets.NegativeOutgoingInvitations.class);
   }
 
   static Stream<Class<?>> allTargets() {

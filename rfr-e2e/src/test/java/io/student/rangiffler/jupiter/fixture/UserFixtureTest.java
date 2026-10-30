@@ -25,6 +25,37 @@ class UserFixtureTest {
 
   private final TestUserRepository repository = new TestUserRepository();
 
+  @Test
+  void createsOutgoingInvitationsAndCleansInvitees() {
+    UserFixture fixture = new UserRequest(1, 2, 3).fixture();
+    List<String> usernames = new ArrayList<>();
+    try (fixture) {
+      fixture.create();
+      TestUser user = fixture.user();
+      usernames.add(user.username());
+      user.friends().forEach(friend -> usernames.add(friend.username()));
+      user.incomingInvitationSenders().forEach(sender -> usernames.add(sender.username()));
+      user.outcomeInvitations().forEach(invitee -> usernames.add(invitee.username()));
+      assertEquals(7, usernames.stream().distinct().count());
+      assertEquals(1, user.friends().size());
+      assertEquals(2, user.incomingInvitationSenders().size());
+      assertEquals(3, user.outcomeInvitations().size());
+      List<Relationship> outgoing = relationships(user.username()).stream()
+          .filter(link -> link.status().equals("PENDING") && link.requester().equals(user.username()))
+          .toList();
+      assertEquals(user.outcomeInvitations().stream().map(TestUser::username).sorted().toList(),
+          outgoing.stream().map(Relationship::addressee).sorted().toList());
+      assertTrue(outgoing.stream().noneMatch(Relationship::responded));
+    }
+    usernames.forEach(repository::verifyUserAbsent);
+    usernames.forEach(username -> assertTrue(relationships(username).isEmpty()));
+  }
+
+  @Test
+  void rejectsNegativeOutgoingCount() {
+    assertThrows(IllegalArgumentException.class, () -> new UserRequest(0, 0, -1));
+  }
+
   @ParameterizedTest
   @CsvSource({"0, 0", "2, 0", "0, 3", "2, 3"})
   void createsRequestedRelationshipsAndCleansAllUsers(int friends, int invitations) {
@@ -126,20 +157,26 @@ class UserFixtureTest {
 
   @Test
   @ExtendWith(UserExtension.class)
-  void extensionUsesAnnotationCounts(@User(friends = 1, incomingInvitations = 2) TestUser user) {
+  void extensionUsesAnnotationCounts(
+      @User(friends = 1, incomingInvitations = 2, outcomeInvitations = 3) TestUser user) {
     assertEquals(1, user.friends().size());
     assertEquals(2, user.incomingInvitationSenders().size());
+    assertEquals(3, user.outcomeInvitations().size());
     List<Relationship> relationships = relationships(user.username());
     assertEquals(1, relationships.stream().filter(link -> link.status().equals("ACCEPTED")).count());
     assertEquals(2, relationships.stream()
         .filter(link -> link.status().equals("PENDING") && link.addressee().equals(user.username())).count());
+    assertEquals(3, relationships.stream()
+        .filter(link -> link.status().equals("PENDING") && link.requester().equals(user.username())).count());
   }
 
   @Test
   void decoratorsPreserveListsInReverseOrderAndWhenRepeated() {
     UserFixture base = new SingeUserFixture(repository, RandomDataUtils.randomUser());
-    try (UserFixture fixture = new UserWithFriendFixture(
-        new UserWithFriendFixture(new UserWithIncomeInvitations(base, 2), 1), 1)) {
+    try (UserFixture fixture = new UserWithRelationsFixture(
+        new UserWithRelationsFixture(
+            new UserWithRelationsFixture(base, Relation.INCOME_INVITATION, 2), Relation.FRIEND, 1),
+        Relation.FRIEND, 1)) {
       fixture.create();
       assertEquals(base.user().username(), fixture.user().username());
       assertEquals(base.user().password(), fixture.user().password());

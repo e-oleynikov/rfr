@@ -7,7 +7,7 @@ import io.student.rangiffler.jupiter.extension.BrowserExtension;
 import io.student.rangiffler.jupiter.extension.UserExtension;
 import io.student.rangiffler.jupiter.fixture.TestUser;
 import io.student.rangiffler.page.WelcomePage;
-import io.student.rangiffler.ui.page.ProfilePage;
+import io.student.rangiffler.page.ProfilePage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

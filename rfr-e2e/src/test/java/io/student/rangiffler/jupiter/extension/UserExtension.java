@@ -27,7 +27,7 @@ public class UserExtension implements BeforeEachCallback, ParameterResolver {
       if (parameters[index].getType() != TestUser.class) {
         throw new ExtensionConfigurationException("@User is supported only for TestUser parameters");
       }
-      UserRequest request = UserRequest.from(parameters[index].getAnnotation(User.class));
+      UserRequest request = new UserRequest(parameters[index].getAnnotation(User.class));
       UserFixture fixture = request.fixture();
       // Keep the fixture in the method store: JUnit 6 closes it even if create() fails.
       context.getStore(NAMESPACE).put(index, fixture);

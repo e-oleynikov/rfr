@@ -1,4 +1,4 @@
-package io.student.rangiffler.ui.page;
+package io.student.rangiffler.page;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -114,10 +114,44 @@ public final class PeoplePage {
     return this;
   }
 
+  @Step("Проверить точный состав списка пользователей: {usernames}")
+  public PeoplePage shouldHaveOnlyUsers(String... usernames) {
+    assertThat(rows).hasCount(usernames.length);
+    for (String username : usernames) {
+      assertThat(userRow(username)).isVisible();
+    }
+    return this;
+  }
+
+  @Step("Проверить отсутствие пользователя {username} в списке")
+  public PeoplePage shouldNotHaveUser(String username) {
+    assertThat(userRow(username)).hasCount(0);
+    return this;
+  }
+
+  @Step("Проверить количество исходящих приглашений: {count}")
+  public PeoplePage shouldHaveOutgoingInvitations(int count) {
+    assertThat(outgoingTab).hasAttribute("aria-selected", "true");
+    assertThat(rows).hasCount(count);
+    return this;
+  }
+
+  @Step("Проверить входящее приглашение от {username} и кнопки Accept и Decline")
+  public PeoplePage shouldHaveIncomingInvitation(String username) {
+    assertThat(incomingTab).hasAttribute("aria-selected", "true");
+    assertThat(userRow(username)
+        .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Accept").setExact(true))).isVisible();
+    assertThat(userRow(username)
+        .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Decline").setExact(true))).isVisible();
+    return this;
+  }
+
   @Step("Проверить исходящее приглашение пользователю {username}")
   public PeoplePage shouldHaveOutgoingInvitation(String username) {
     assertThat(outgoingTab).hasAttribute("aria-selected", "true");
     assertThat(userRow(username).getByText("Waiting...", new Locator.GetByTextOptions().setExact(true))).isVisible();
+    assertThat(userRow(username)
+        .getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Cancel").setExact(true))).isVisible();
     return this;
   }
 

@@ -33,7 +33,6 @@ dist/
 Thumbs.db
 
 # Local agent notes
-AGENTS.md
 docs/
 
 # Project-local RTK installation

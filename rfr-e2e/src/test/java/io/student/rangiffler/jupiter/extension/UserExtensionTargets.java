@@ -5,6 +5,7 @@ import io.student.rangiffler.data.db.Databases;
 import io.student.rangiffler.data.db.Friendships;
 import io.student.rangiffler.data.db.Invitations;
 import io.student.rangiffler.data.db.Jdbc;
+import io.student.rangiffler.data.db.Profile;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.fixture.TestUser;
 import io.student.rangiffler.jupiter.fixture.UserFixture;
@@ -80,6 +81,38 @@ final class UserExtensionTargets {
       assertEquals(2, user.friends().size());
       assertEquals(3, user.incomingInvitationSenders().size());
       reporter.publishEntry("phase", "test");
+    }
+  }
+
+  @EngineTarget
+  @DisplayName("Пользователь с одним исходящим приглашением")
+  static class OutgoingInvitation extends Lifecycle {
+    @Test
+    @DisplayName("Связь PENDING направлена от пользователя к приглашённому")
+    void test(@User(outcomeInvitations = 1) TestUser user, TestReporter reporter) {
+      assertEquals(1, user.outcomeInvitations().size());
+      TestUser invitee = user.outcomeInvitations().getFirst();
+      var client = Jdbc.getClient(Databases.AUTH);
+      assertTrue(new Profile(client, invitee.username()).exist());
+      var invitations = new Invitations(client, user.username()).list();
+      assertEquals(1, invitations.size());
+      var invitation = invitations.getFirst();
+      assertEquals(user.username(), invitation.requester());
+      assertEquals(invitee.username(), invitation.addressee());
+      assertEquals("PENDING", invitation.status());
+      assertFalse(invitation.responded());
+      reporter.publishEntry("phase", "test");
+    }
+  }
+
+  @EngineTarget
+  @DisplayName("Отрицательное количество исходящих приглашений")
+  static class NegativeOutgoingInvitations extends Lifecycle {
+    @Test
+    @DisplayName("Отклонить outcomeInvitations = -1 до создания пользователя")
+    void test(@User(outcomeInvitations = -1) TestUser user, TestReporter reporter) {
+      reporter.publishEntry("phase", "test");
+      fail("Negative count must prevent the test body");
     }
   }
 
@@ -203,13 +236,21 @@ final class UserExtensionTargets {
             "phase", phase + "User", "parameter", Integer.toString(index), "username", user.username(),
             "friends", user.friends().stream().map(TestUser::username).collect(Collectors.joining(",", "[", "]")),
             "senders", user.incomingInvitationSenders().stream().map(TestUser::username)
+                .collect(Collectors.joining(",", "[", "]")),
+            "invitees", user.outcomeInvitations().stream().map(TestUser::username)
                 .collect(Collectors.joining(",", "[", "]"))));
         assertTrue(new AuthAccount(client, user.username()).exist(), "User must still exist at " + phase);
         assertEquals(user.friends().stream().map(TestUser::username).sorted().toList(),
             new Friendships(client, user.username()).list().stream()
                 .map(link -> link.otherUser(user.username())).sorted().toList());
         assertEquals(user.incomingInvitationSenders().stream().map(TestUser::username).sorted().toList(),
-            new Invitations(client, user.username()).list().stream().map(link -> link.requester()).sorted().toList());
+            new Invitations(client, user.username()).list().stream()
+                .filter(link -> link.addressee().equals(user.username()))
+                .map(link -> link.requester()).sorted().toList());
+        assertEquals(user.outcomeInvitations().stream().map(TestUser::username).sorted().toList(),
+            new Invitations(client, user.username()).list().stream()
+                .filter(link -> link.requester().equals(user.username()))
+                .map(link -> link.addressee()).sorted().toList());
       }
     }
   }

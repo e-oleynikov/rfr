@@ -7,26 +7,34 @@ public record TestUser(
     String username,
     String password,
     List<TestUser> friends,
-    List<TestUser> incomingInvitationSenders
+    List<TestUser> incomingInvitationSenders,
+    List<TestUser> outcomeInvitations
 ) {
 
   public TestUser {
     friends = List.copyOf(friends);
     incomingInvitationSenders = List.copyOf(incomingInvitationSenders);
+    outcomeInvitations = List.copyOf(outcomeInvitations);
   }
 
   public TestUser(String username, String password) {
-    this(username, password, List.of(), List.of());
+    this(username, password, List.of(), List.of(), List.of());
   }
 
   public TestUser withFriend(TestUser friend) {
     return new TestUser(username, password,
-        Stream.concat(friends.stream(), Stream.of(friend)).toList(), incomingInvitationSenders);
+        Stream.concat(friends.stream(), Stream.of(friend)).toList(), incomingInvitationSenders,
+        outcomeInvitations);
   }
 
   public TestUser withIncomingInvitationSender(TestUser sender) {
     return new TestUser(username, password, friends,
-        Stream.concat(incomingInvitationSenders.stream(), Stream.of(sender)).toList());
+        Stream.concat(incomingInvitationSenders.stream(), Stream.of(sender)).toList(), outcomeInvitations);
+  }
+
+  public TestUser withOutcomeInvitations(TestUser invitee) {
+    return new TestUser(username, password, friends, incomingInvitationSenders,
+        Stream.concat(outcomeInvitations.stream(), Stream.of(invitee)).toList());
   }
 
   @Override

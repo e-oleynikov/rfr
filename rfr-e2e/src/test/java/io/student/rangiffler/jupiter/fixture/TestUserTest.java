@@ -16,10 +16,14 @@ class TestUserTest {
     TestUser sender = RandomDataUtils.randomUser();
     List<TestUser> friends = new ArrayList<>(List.of(friend));
     List<TestUser> senders = new ArrayList<>(List.of(sender));
+    List<TestUser> invitees = new ArrayList<>(List.of(friend));
     TestUser credentials = RandomDataUtils.randomUser();
-    TestUser user = new TestUser(credentials.username(), credentials.password(), friends, senders);
+    TestUser user = new TestUser(credentials.username(), credentials.password(), friends, senders, invitees);
     friends.clear();
     senders.clear();
+    invitees.clear();
+    assertEquals(List.of(friend), user.outcomeInvitations());
+    assertThrows(UnsupportedOperationException.class, () -> user.outcomeInvitations().clear());
 
     assertEquals(List.of(friend), user.friends());
     assertEquals(List.of(sender), user.incomingInvitationSenders());
@@ -34,13 +38,15 @@ class TestUserTest {
     TestUser firstFriend = RandomDataUtils.randomUser();
     TestUser secondFriend = RandomDataUtils.randomUser();
     TestUser sender = RandomDataUtils.randomUser();
-    TestUser enriched = original.withFriend(firstFriend)
+    TestUser enriched = original.withOutcomeInvitations(firstFriend).withFriend(firstFriend)
         .withIncomingInvitationSender(sender).withFriend(secondFriend);
 
     assertEquals(original.username(), enriched.username());
     assertEquals(original.password(), enriched.password());
     assertEquals(List.of(firstFriend, secondFriend), enriched.friends());
     assertEquals(List.of(sender), enriched.incomingInvitationSenders());
+    assertEquals(List.of(firstFriend), enriched.outcomeInvitations());
+    assertTrue(original.outcomeInvitations().isEmpty());
     assertTrue(original.friends().isEmpty());
     assertTrue(original.incomingInvitationSenders().isEmpty());
   }
