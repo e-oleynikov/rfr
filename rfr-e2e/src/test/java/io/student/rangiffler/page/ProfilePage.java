@@ -6,7 +6,10 @@ import com.microsoft.playwright.options.AriaRole;
 import io.qameta.allure.Step;
 import io.student.rangiffler.config.TestConfig;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.regex.Pattern;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
@@ -40,7 +43,7 @@ public final class ProfilePage {
     locationSelect = page.getByRole(AriaRole.COMBOBOX, new Page.GetByRoleOptions().setName("Location").setExact(true));
     countryOptions = page.getByRole(AriaRole.OPTION);
     avatarInput = page.getByRole(AriaRole.MAIN).locator("input[type='file']");
-    avatarImage = page.getByRole(AriaRole.MAIN).locator(".MuiAvatar-root img[src^='data:image/']");
+    avatarImage = page.getByRole(AriaRole.MAIN).locator("img[src^='data:image/']:not([alt])");
     saveButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Save").setExact(true));
     resetButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Reset").setExact(true));
     savedConfirmation = page.getByRole(AriaRole.ALERT)
@@ -111,9 +114,9 @@ public final class ProfilePage {
   }
 
   @Step("Проверить аватар с содержимым {dataUrl}")
-  public ProfilePage shouldHaveAvatar(String dataUrl) {
+  public ProfilePage shouldHaveAvatar(Path image) throws IOException {
     assertThat(avatarImage).isVisible();
-    assertThat(avatarImage).hasAttribute("src", dataUrl);
+    assertThat(avatarImage).hasAttribute("src", "data:image/png;base64," + Base64.getEncoder().encodeToString(Files.readAllBytes(image)));
     return this;
   }
 
