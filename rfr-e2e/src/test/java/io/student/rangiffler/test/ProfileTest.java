@@ -69,15 +69,14 @@ public class ProfileTest {
   @DisplayName("Загруженный аватар сохраняется после перезагрузки профиля")
   void shouldKeepAvatarAfterReload(Page page, @User TestUser user) throws IOException {
     Path avatar = imageResource("avatar-blue.png");
-    String expectedAvatar = imageDataUrl(avatar);
 
     openUserProfile(page, user)
         .uploadAvatar(avatar)
-        .shouldHaveAvatar(expectedAvatar)
+        .shouldHaveAvatar(avatar)
         .clickSave()
         .shouldShowSavedConfirmation()
         .reload()
-        .shouldHaveAvatar(expectedAvatar)
+        .shouldHaveAvatar(avatar)
         .shouldHaveProfileDetails("", "")
         .shouldHaveCountry(DEFAULT_COUNTRY)
         .shouldHaveUsername(user.username());
@@ -88,34 +87,32 @@ public class ProfileTest {
   void shouldResetToSavedProfile(Page page, @User TestUser user) throws IOException {
     Path savedAvatar = imageResource("avatar-blue.png");
     Path changedAvatar = imageResource("avatar-orange.png");
-    String savedDataUrl = imageDataUrl(savedAvatar);
-    String changedDataUrl = imageDataUrl(changedAvatar);
 
     openUserProfile(page, user)
         .fillProfileDetails("Anna", "Petrova")
         .selectCountry(SAVED_COUNTRY)
         .uploadAvatar(savedAvatar)
-        .shouldHaveAvatar(savedDataUrl)
+        .shouldHaveAvatar(savedAvatar)
         .clickSave()
         .shouldShowSavedConfirmation()
         .reload()
         .shouldHaveProfileDetails("Anna", "Petrova")
         .shouldHaveCountry(SAVED_COUNTRY)
-        .shouldHaveAvatar(savedDataUrl)
+        .shouldHaveAvatar(savedAvatar)
         .fillProfileDetails("Maria", "Sidorova")
         .selectCountry(CHANGED_COUNTRY)
         .uploadAvatar(changedAvatar)
         .shouldHaveProfileDetails("Maria", "Sidorova")
         .shouldHaveCountry(CHANGED_COUNTRY)
-        .shouldHaveAvatar(changedDataUrl)
+        .shouldHaveAvatar(changedAvatar)
         .clickReset()
         .shouldHaveProfileDetails("Anna", "Petrova")
         .shouldHaveCountry(SAVED_COUNTRY)
-        .shouldHaveAvatar(savedDataUrl)
+        .shouldHaveAvatar(savedAvatar)
         .reload()
         .shouldHaveProfileDetails("Anna", "Petrova")
         .shouldHaveCountry(SAVED_COUNTRY)
-        .shouldHaveAvatar(savedDataUrl)
+        .shouldHaveAvatar(savedAvatar)
         .shouldHaveUsername(user.username());
   }
 
@@ -133,7 +130,4 @@ public class ProfileTest {
     return new ClassPathResource("images/" + filename).getFile().toPath();
   }
 
-  private String imageDataUrl(Path image) throws IOException {
-    return "data:image/png;base64," + Base64.getEncoder().encodeToString(Files.readAllBytes(image));
-  }
 }
