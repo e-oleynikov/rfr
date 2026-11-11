@@ -29,7 +29,7 @@ public class OutcomeInvitationsTabTest {
   @Test
   @DisplayName("Outcome invitations: связи других типов не отображаются")
   void shouldExcludeOtherRelationshipTypes(
-      Page page, @User(friends = 1, incomingInvitations = 1, outcomeInvitations = 1) TestUser user) {
+      Page page, @User(friends = 1, incomeInvitations = 1, outcomeInvitations = 1) TestUser user) {
     login(page, user).open().openOutgoingInvitations()
         .shouldHaveOutgoingInvitations(1)
         .shouldHaveOnlyUsers(user.outcomeInvitations().getFirst().username())

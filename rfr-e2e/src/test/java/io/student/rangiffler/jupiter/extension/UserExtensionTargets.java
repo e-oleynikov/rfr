@@ -77,7 +77,7 @@ final class UserExtensionTargets {
   static class RelatedUser extends Lifecycle {
     @Test
     @DisplayName("Получить подготовленные списки друзей и отправителей заявок")
-    void test(@User(friends = 2, incomingInvitations = 3) TestUser user, TestReporter reporter) {
+    void test(@User(friends = 2, incomeInvitations = 3) TestUser user, TestReporter reporter) {
       assertEquals(2, user.friends().size());
       assertEquals(3, user.incomingInvitationSenders().size());
       reporter.publishEntry("phase", "test");
@@ -122,7 +122,7 @@ final class UserExtensionTargets {
     @Test
     @DisplayName("Получить разные фикстуры по индексам параметров")
     void test(TestReporter reporter, @User(friends = 1) TestUser first,
-              TestInfo info, @User(incomingInvitations = 2) TestUser second) {
+              TestInfo info, @User(incomeInvitations = 2) TestUser second) {
       assertNotEquals(first.username(), second.username());
       assertEquals(1, first.friends().size());
       assertTrue(first.incomingInvitationSenders().isEmpty());
@@ -138,7 +138,7 @@ final class UserExtensionTargets {
   static class FailedTest extends Lifecycle {
     @Test
     @DisplayName("Завершиться ожидаемой ошибкой после подготовки данных")
-    void test(@User(friends = 1, incomingInvitations = 1) TestUser user, TestReporter reporter) {
+    void test(@User(friends = 1, incomeInvitations = 1) TestUser user, TestReporter reporter) {
       reporter.publishEntry("phase", "test");
       fail("Intentional target failure");
     }
@@ -149,7 +149,7 @@ final class UserExtensionTargets {
   static class PartialSetup extends Lifecycle {
     @Test
     @DisplayName("Не выполнять тело после ошибки второго параметра")
-    void test(@User(friends = 1, incomingInvitations = 1) TestUser first,
+    void test(@User(friends = 1, incomeInvitations = 1) TestUser first,
               @User String invalid, TestReporter reporter) {
       reporter.publishEntry("phase", "test");
       fail("Invalid parameter must prevent the test body");
@@ -182,8 +182,8 @@ final class UserExtensionTargets {
   @DisplayName("Отрицательное количество входящих заявок")
   static class NegativeInvitations extends Lifecycle {
     @Test
-    @DisplayName("Отклонить incomingInvitations = -1")
-    void test(@User(incomingInvitations = -1) TestUser user, TestReporter reporter) {
+    @DisplayName("Отклонить incomeInvitations = -1")
+    void test(@User(incomeInvitations = -1) TestUser user, TestReporter reporter) {
       reporter.publishEntry("phase", "test");
       fail("Negative count must prevent the test body");
     }
@@ -240,6 +240,7 @@ final class UserExtensionTargets {
             "invitees", user.outcomeInvitations().stream().map(TestUser::username)
                 .collect(Collectors.joining(",", "[", "]"))));
         assertTrue(new AuthAccount(client, user.username()).exist(), "User must still exist at " + phase);
+        assertTrue(new Profile(client, user.username()).exist(), "API profile must still exist at " + phase);
         assertEquals(user.friends().stream().map(TestUser::username).sorted().toList(),
             new Friendships(client, user.username()).list().stream()
                 .map(link -> link.otherUser(user.username())).sorted().toList());

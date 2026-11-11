@@ -46,8 +46,8 @@ class DatabaseObjectsTest {
   void friendshipIsSymmetricButInvitationIsDirectional() {
     try (UserFixture first = new UserRequest(0, 0).fixture();
          UserFixture second = new UserRequest(0, 0).fixture()) {
-      createProfiled(first);
-      createProfiled(second);
+      first.create();
+      second.create();
       String a = first.user().username();
       String b = second.user().username();
       FriendShip friendship = new FriendShip(client, a, b);
@@ -145,8 +145,4 @@ class DatabaseObjectsTest {
         () -> assertThrows(IllegalArgumentException.class, new Invitation(client, test, ordinary)::delete));
   }
 
-  private void createProfiled(UserFixture fixture) {
-    fixture.create();
-    new Profile(client, fixture.user().username()).create();
-  }
 }

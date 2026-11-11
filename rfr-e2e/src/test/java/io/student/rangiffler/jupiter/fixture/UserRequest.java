@@ -4,23 +4,23 @@ import io.student.rangiffler.data.TestUserRepository;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.utils.RandomDataUtils;
 
-public record UserRequest(int friends, int incomingInvitations, int outcomeInvitations) {
+public record UserRequest(int friends, int incomeInvitations, int outcomeInvitations) {
 
   public UserRequest {
-    if (friends < 0 || incomingInvitations < 0) {
-      throw new IllegalArgumentException("User friends and incomingInvitations must be non-negative");
+    if (friends < 0 || incomeInvitations < 0) {
+      throw new IllegalArgumentException("User friends and incomeInvitations must be non-negative");
     }
     if (outcomeInvitations < 0) {
       throw new IllegalArgumentException("User outcomeInvitations must be non-negative");
     }
   }
 
-  public UserRequest(int friends, int incomingInvitations) {
-    this(friends, incomingInvitations, 0);
+  public UserRequest(int friends, int incomeInvitations) {
+    this(friends, incomeInvitations, 0);
   }
 
   public UserRequest(User user) {
-    this(user.friends(), user.incomingInvitations(), user.outcomeInvitations());
+    this(user.friends(), user.incomeInvitations(), user.outcomeInvitations());
   }
 
   public static UserRequest from(User annotation) {
@@ -32,8 +32,8 @@ public record UserRequest(int friends, int incomingInvitations, int outcomeInvit
     if (friends > 0) {
       fixture = new UserWithRelationsFixture(fixture, Relation.FRIEND, friends);
     }
-    if (incomingInvitations > 0) {
-      fixture = new UserWithRelationsFixture(fixture, Relation.INCOME_INVITATION, incomingInvitations);
+    if (incomeInvitations > 0) {
+      fixture = new UserWithRelationsFixture(fixture, Relation.INCOME_INVITATION, incomeInvitations);
     }
     if (outcomeInvitations > 0) {
       fixture = new UserWithRelationsFixture(fixture, Relation.OUTCOME_INVITATION, outcomeInvitations);

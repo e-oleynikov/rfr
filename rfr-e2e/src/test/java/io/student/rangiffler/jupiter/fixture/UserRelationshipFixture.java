@@ -37,13 +37,11 @@ abstract class UserRelationshipFixture implements UserFixture {
     if (count == 0) {
       return;
     }
-    repository.createApiProfile(user());
     for (int index = 0; index < count; index++) {
       UserFixture related = new SingeUserFixture(repository, RandomDataUtils.randomUser());
       // Register before creation so close() also covers partially failed setup.
       relatedUsers.add(related);
       related.create();
-      repository.createApiProfile(related.user());
       user = createRelationship(related.user());
     }
   }

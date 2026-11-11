@@ -19,7 +19,7 @@ public class FriendshipTest {
 
   @Test
   @DisplayName("Друзья и входящие заявки из @User отображаются в UI")
-  void shouldShowPreparedFriendsAndInvitations(Page page, @User(friends = 2, incomingInvitations = 3) TestUser user) {
+  void shouldShowPreparedFriendsAndInvitations(Page page, @User(friends = 2, incomeInvitations = 3) TestUser user) {
     login(page, user).open().shouldHaveFriends(2)
         .openIncomingInvitations().shouldHaveIncomingInvitations(3);
   }

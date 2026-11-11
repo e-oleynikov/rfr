@@ -89,7 +89,7 @@ class UserExtensionTest {
         ? "@User is supported only for TestUser parameters"
         : target == UserExtensionTargets.NegativeOutgoingInvitations.class
         ? "User outcomeInvitations must be non-negative"
-        : "User friends and incomingInvitations must be non-negative", failure.getMessage());
+        : "User friends and incomeInvitations must be non-negative", failure.getMessage());
     if (target == UserExtensionTargets.NegativeOutgoingInvitations.class) {
       // Request validation precedes fixture construction, Store registration and create().
       assertEquals(UserRequest.class.getName(), failure.getStackTrace()[0].getClassName());

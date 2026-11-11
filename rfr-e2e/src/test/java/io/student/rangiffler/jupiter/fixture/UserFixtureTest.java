@@ -26,6 +26,23 @@ class UserFixtureTest {
   private final TestUserRepository repository = new TestUserRepository();
 
   @Test
+  void singleUserCreatesAuthAccountAndApiProfileAndCleansBoth() {
+    UserFixture fixture = new SingeUserFixture(repository, RandomDataUtils.randomUser());
+    String username = fixture.user().username();
+    var client = Jdbc.getClient(Databases.AUTH);
+    AuthAccount account = new AuthAccount(client, username);
+    Profile profile = new Profile(client, username);
+    try (fixture) {
+      fixture.create();
+      assertTrue(account.exist(), "Auth account must exist after fixture creation");
+      assertTrue(profile.exist(), "API profile must exist even without relationships");
+      assertTrue(relationships(username).isEmpty());
+    }
+    assertFalse(account.exist(), "Auth account must be removed after fixture close");
+    assertFalse(profile.exist(), "API profile must be removed after fixture close");
+  }
+
+  @Test
   void createsOutgoingInvitationsAndCleansInvitees() {
     UserFixture fixture = new UserRequest(1, 2, 3).fixture();
     List<String> usernames = new ArrayList<>();
@@ -106,11 +123,9 @@ class UserFixtureTest {
   void singleUserCleanupRemovesRelationshipsCreatedDuringTest(String status, boolean outgoing) {
     try (UserFixture other = new SingeUserFixture(repository, RandomDataUtils.randomUser())) {
       other.create();
-      repository.createApiProfile(other.user());
       UserFixture fixture = new SingeUserFixture(repository, RandomDataUtils.randomUser());
       try (fixture) {
         fixture.create();
-        repository.createApiProfile(fixture.user());
         TestUser requester = outgoing ? fixture.user() : other.user();
         TestUser addressee = outgoing ? other.user() : fixture.user();
         if (status.equals("ACCEPTED")) {
@@ -158,7 +173,7 @@ class UserFixtureTest {
   @Test
   @ExtendWith(UserExtension.class)
   void extensionUsesAnnotationCounts(
-      @User(friends = 1, incomingInvitations = 2, outcomeInvitations = 3) TestUser user) {
+      @User(friends = 1, incomeInvitations = 2, outcomeInvitations = 3) TestUser user) {
     assertEquals(1, user.friends().size());
     assertEquals(2, user.incomingInvitationSenders().size());
     assertEquals(3, user.outcomeInvitations().size());

@@ -22,6 +22,7 @@ public final class SingeUserFixture implements UserFixture {
     // Enable cleanup before insertion so partially failed setup is covered as well.
     cleanupRequired = true;
     repository.create(user);
+    repository.createApiProfile(user);
   }
 
   @Override

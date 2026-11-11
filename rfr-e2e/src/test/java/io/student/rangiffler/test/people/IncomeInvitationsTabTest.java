@@ -18,7 +18,7 @@ public class IncomeInvitationsTabTest {
 
   @Test
   @DisplayName("Income invitations: состав списка и элементы управления строкой")
-  void shouldShowRelatedUserAndControls(Page page, @User(incomingInvitations = 1) TestUser user) {
+  void shouldShowRelatedUserAndControls(Page page, @User(incomeInvitations = 1) TestUser user) {
     String relatedUsername = user.incomingInvitationSenders().getFirst().username();
     login(page, user).open().openIncomingInvitations()
         .shouldHaveIncomingInvitations(1)
@@ -29,7 +29,7 @@ public class IncomeInvitationsTabTest {
   @Test
   @DisplayName("Income invitations: связи других типов не отображаются")
   void shouldExcludeOtherRelationshipTypes(
-      Page page, @User(friends = 1, incomingInvitations = 1, outcomeInvitations = 1) TestUser user) {
+      Page page, @User(friends = 1, incomeInvitations = 1, outcomeInvitations = 1) TestUser user) {
     login(page, user).open().openIncomingInvitations()
         .shouldHaveIncomingInvitations(1)
         .shouldHaveOnlyUsers(user.incomingInvitationSenders().getFirst().username())
@@ -40,7 +40,7 @@ public class IncomeInvitationsTabTest {
   @Test
   @DisplayName("Income invitations: связи другого владельца не отображаются")
   void shouldExcludeAnotherUsersRelationships(
-      Page page, @User(incomingInvitations = 1) TestUser user, @User(incomingInvitations = 1) TestUser other) {
+      Page page, @User(incomeInvitations = 1) TestUser user, @User(incomeInvitations = 1) TestUser other) {
     login(page, user).open().openIncomingInvitations()
         .shouldHaveIncomingInvitations(1)
         .shouldHaveOnlyUsers(user.incomingInvitationSenders().getFirst().username())
