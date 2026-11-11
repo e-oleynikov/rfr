@@ -33,5 +33,11 @@ dist/
 Thumbs.db
 
 # Local agent notes
-AGENTS.md
 docs/
+
+# Project-local RTK installation
+.rtk/
+RTK.md
+.codex/hooks.json
+.codex/hooks.json.bak*
+.codex/hook-state/

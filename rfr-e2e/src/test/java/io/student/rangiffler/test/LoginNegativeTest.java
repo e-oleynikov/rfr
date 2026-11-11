@@ -5,7 +5,7 @@ import io.qameta.allure.Feature;
 import io.student.rangiffler.data.TestUserRepository;
 import io.student.rangiffler.jupiter.annotation.User;
 import io.student.rangiffler.jupiter.extension.BrowserExtension;
-import io.student.rangiffler.jupiter.extension.TestUserExtension;
+import io.student.rangiffler.jupiter.extension.UserExtension;
 import io.student.rangiffler.jupiter.fixture.TestUser;
 import io.student.rangiffler.page.WelcomePage;
 import io.student.rangiffler.utils.RandomDataUtils;
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.Map;
 
 @Feature("Вход")
-@ExtendWith({TestUserExtension.class, BrowserExtension.class})
+@ExtendWith({UserExtension.class, BrowserExtension.class})
 public class LoginNegativeTest {
 
   @BeforeEach
