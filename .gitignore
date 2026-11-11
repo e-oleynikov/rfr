@@ -39,6 +39,5 @@ docs/
 # Project-local RTK installation
 .rtk/
 RTK.md
-.codex/hooks.json
 .codex/hooks.json.bak*
 .codex/hook-state/
