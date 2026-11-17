@@ -1,0 +1,190 @@
+# Правила Codex для локальной работы в проекте.
+# Только явные prefix_rule: без циклов и внешних обработчиков.
+# Списки внутри pattern — альтернативные точные токены, не glob.
+# Покрываются прямые команды и перечисленные варианты RTK.
+# Find запрещён целиком; для поиска используйте rg --files.
+# Перечисленные глобальные опции Git запрещены и для безопасных подкоманд.
+# Слитные формы (-Cpath, --git-dir=path), другие обёртки и произвольный код
+# не покрываются. Правила не являются универсальной защитой от удаления.
+# Для обычного mv в песочнице отдельное allow не требуется.
+# После изменения правил перезапустите Codex в доверенном проекте.
+
+prefix_rule(
+    pattern = [["rm", "grm", "/bin/rm", "/usr/bin/rm", "/opt/homebrew/bin/grm", "/usr/local/bin/grm", "unlink", "/usr/bin/unlink", "/bin/unlink", "/opt/homebrew/bin/unlink", "/usr/local/bin/unlink"]],
+    decision = "forbidden",
+    justification = "Удаление запрещено: переместите файл или каталог в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["find", "gfind", "/usr/bin/find", "/bin/find", "/opt/homebrew/bin/find", "/usr/local/bin/find", "/opt/homebrew/bin/gfind", "/usr/local/bin/gfind"]],
+    decision = "forbidden",
+    justification = "Find запрещён из-за -delete и -exec: ищите через rg --files, для удаления используйте mv в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "push"],
+    decision = "forbidden",
+    justification = "Git push запрещён: оставьте изменения и коммиты локальными",
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "rm"],
+    decision = "forbidden",
+    justification = "Git rm запрещён: переместите файл в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path", "--bare", "--no-pager", "--paginate", "-P", "-p", "--no-replace-objects", "--literal-pathspecs", "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs", "--no-optional-locks", "--no-lazy-fetch", "--no-advice"]],
+    decision = "forbidden",
+    justification = "Эти глобальные опции Git запрещены из-за обхода запретов push/rm: запускайте безопасные подкоманды напрямую из нужного каталога",
+)
+
+prefix_rule(
+    pattern = [["./gradlew", "../gradlew", "/Users/egoroleynikov/IdeaProjects/rfr/gradlew"], ["runAll", ":runAll", "e2eTest", ":e2eTest", "build", "bootRun", "test", "compileTestJava", "testClasses", "installPlaywright", ":rfr-auth:bootRun", ":rfr-api:bootRun", ":rfr-auth:build", ":rfr-api:build", ":rfr-auth:test", ":rfr-api:test", ":rfr-e2e:test", ":rfr-e2e:compileTestJava", ":rfr-e2e:testClasses", ":rfr-e2e:installPlaywright"]],
+    decision = "allow",
+    justification = "Разрешены локальный запуск бэкендов, сборка и проверки проекта",
+)
+
+prefix_rule(
+    pattern = ["npm", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из rfr-gql-client",
+)
+
+prefix_rule(
+    pattern = ["npm", "--prefix", "rfr-gql-client", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из корня проекта",
+)
+
+prefix_rule(
+    pattern = ["docker", "compose", "up", "-d", "mysql"],
+    decision = "allow",
+    justification = "Разрешён запуск локальной MySQL из docker-compose.yml",
+)
+
+prefix_rule(
+    pattern = ["bash", "localenv.sh"],
+    decision = "allow",
+    justification = "Разрешён проектный скрипт запуска MySQL",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["rm", "grm", "/bin/rm", "/usr/bin/rm", "/opt/homebrew/bin/grm", "/usr/local/bin/grm", "unlink", "/usr/bin/unlink", "/bin/unlink", "/opt/homebrew/bin/unlink", "/usr/local/bin/unlink"]],
+    decision = "forbidden",
+    justification = "Удаление запрещено: переместите файл или каталог в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["find", "gfind", "/usr/bin/find", "/bin/find", "/opt/homebrew/bin/find", "/usr/local/bin/find", "/opt/homebrew/bin/gfind", "/usr/local/bin/gfind"]],
+    decision = "forbidden",
+    justification = "Find запрещён из-за -delete и -exec: ищите через rg --files, для удаления используйте mv в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "push"],
+    decision = "forbidden",
+    justification = "Git push запрещён: оставьте изменения и коммиты локальными",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "rm"],
+    decision = "forbidden",
+    justification = "Git rm запрещён: переместите файл в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path", "--bare", "--no-pager", "--paginate", "-P", "-p", "--no-replace-objects", "--literal-pathspecs", "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs", "--no-optional-locks", "--no-lazy-fetch", "--no-advice"]],
+    decision = "forbidden",
+    justification = "Эти глобальные опции Git запрещены из-за обхода запретов push/rm: запускайте безопасные подкоманды напрямую из нужного каталога",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["./gradlew", "../gradlew", "/Users/egoroleynikov/IdeaProjects/rfr/gradlew"], ["runAll", ":runAll", "e2eTest", ":e2eTest", "build", "bootRun", "test", "compileTestJava", "testClasses", "installPlaywright", ":rfr-auth:bootRun", ":rfr-api:bootRun", ":rfr-auth:build", ":rfr-api:build", ":rfr-auth:test", ":rfr-api:test", ":rfr-e2e:test", ":rfr-e2e:compileTestJava", ":rfr-e2e:testClasses", ":rfr-e2e:installPlaywright"]],
+    decision = "allow",
+    justification = "Разрешены локальный запуск бэкендов, сборка и проверки проекта",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], "npm", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из rfr-gql-client",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], "npm", "--prefix", "rfr-gql-client", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из корня проекта",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], "docker", "compose", "up", "-d", "mysql"],
+    decision = "allow",
+    justification = "Разрешён запуск локальной MySQL из docker-compose.yml",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], "bash", "localenv.sh"],
+    decision = "allow",
+    justification = "Разрешён проектный скрипт запуска MySQL",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["rm", "grm", "/bin/rm", "/usr/bin/rm", "/opt/homebrew/bin/grm", "/usr/local/bin/grm", "unlink", "/usr/bin/unlink", "/bin/unlink", "/opt/homebrew/bin/unlink", "/usr/local/bin/unlink"]],
+    decision = "forbidden",
+    justification = "Удаление запрещено: переместите файл или каталог в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["find", "gfind", "/usr/bin/find", "/bin/find", "/opt/homebrew/bin/find", "/usr/local/bin/find", "/opt/homebrew/bin/gfind", "/usr/local/bin/gfind"]],
+    decision = "forbidden",
+    justification = "Find запрещён из-за -delete и -exec: ищите через rg --files, для удаления используйте mv в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "push"],
+    decision = "forbidden",
+    justification = "Git push запрещён: оставьте изменения и коммиты локальными",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], "rm"],
+    decision = "forbidden",
+    justification = "Git rm запрещён: переместите файл в .<имя>.<время>.bak",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["git", "/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"], ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path", "--bare", "--no-pager", "--paginate", "-P", "-p", "--no-replace-objects", "--literal-pathspecs", "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs", "--no-optional-locks", "--no-lazy-fetch", "--no-advice"]],
+    decision = "forbidden",
+    justification = "Эти глобальные опции Git запрещены из-за обхода запретов push/rm: запускайте безопасные подкоманды напрямую из нужного каталога",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], ["./gradlew", "../gradlew", "/Users/egoroleynikov/IdeaProjects/rfr/gradlew"], ["runAll", ":runAll", "e2eTest", ":e2eTest", "build", "bootRun", "test", "compileTestJava", "testClasses", "installPlaywright", ":rfr-auth:bootRun", ":rfr-api:bootRun", ":rfr-auth:build", ":rfr-api:build", ":rfr-auth:test", ":rfr-api:test", ":rfr-e2e:test", ":rfr-e2e:compileTestJava", ":rfr-e2e:testClasses", ":rfr-e2e:installPlaywright"]],
+    decision = "allow",
+    justification = "Разрешены локальный запуск бэкендов, сборка и проверки проекта",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], "npm", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из rfr-gql-client",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], "npm", "--prefix", "rfr-gql-client", "run", ["dev", "preview", "lint", "build"]],
+    decision = "allow",
+    justification = "Разрешены запуск и проверки интерфейса из корня проекта",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], "docker", "compose", "up", "-d", "mysql"],
+    decision = "allow",
+    justification = "Разрешён запуск локальной MySQL из docker-compose.yml",
+)
+
+prefix_rule(
+    pattern = [["rtk", ".rtk/rtk", "../.rtk/rtk", "/Users/egoroleynikov/IdeaProjects/rfr/.rtk/rtk"], ["bypass", "proxy"], "bash", "localenv.sh"],
+    decision = "allow",
+    justification = "Разрешён проектный скрипт запуска MySQL",
+)

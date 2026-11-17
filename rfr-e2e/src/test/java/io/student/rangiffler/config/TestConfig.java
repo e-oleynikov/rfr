@@ -9,6 +9,8 @@ public final class TestConfig {
   private static final String DEFAULT_DB_URL =
       "jdbc:mysql://localhost:3306/?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=10000";
   private static final String DEFAULT_DB_USER = "root";
+  // Local MySQL password from docker-compose.yml.
+  private static final String DEFAULT_DB_PASSWORD = "secret";
   private static final String DEFAULT_HEADED = "false";
 
   private TestConfig() {
@@ -31,11 +33,7 @@ public final class TestConfig {
   }
 
   public static String dbPassword() {
-    String password = setting("db.password", null);
-    if (password == null) {
-      throw new IllegalStateException("Set rfr.db.password or RFR_DB_PASSWORD to enable test-user cleanup");
-    }
-    return password;
+    return setting("db.password", DEFAULT_DB_PASSWORD);
   }
 
   public static boolean headed() {

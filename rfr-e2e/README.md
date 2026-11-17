@@ -2,15 +2,29 @@
 
 Требуются JDK 25, MySQL и запущенные `rfr-auth`, `rfr-api`, `rfr-gql-client`.
 
-Перед запуском задайте пароль локальной MySQL в переменной окружения
-`RFR_DB_PASSWORD`. В zsh можно ввести его без отображения и сохранения в истории:
+Перед первым запуском и после обновления Playwright установите Chromium из корня:
 
-```zsh
-read -rs 'RFR_DB_PASSWORD?MySQL password: '
-export RFR_DB_PASSWORD
+```bash
+./gradlew :rfr-e2e:installPlaywright
 ```
 
+Задача использует версию Playwright из `rfr-e2e/build.gradle`, требует доступа
+к серверу загрузки браузеров и не выполняется автоматически перед тестами.
+
+Для локальной MySQL из Docker Compose пароль уже задан по умолчанию.
+Для другой БД переопределите `RFR_DB_PASSWORD`, как описано в разделе [«Настройки тестов»](#настройки-тестов).
+
 Из корня репозитория:
+
+```bash
+./gradlew e2eTest
+```
+
+Корневая задача запускает только `:rfr-e2e:test`, сохраняя его настройки JUnit,
+Allure и параметры `rfr.*`. Она не запускает серверы, БД или тесты бэкенд-модулей
+и не изменяет поведение `build`.
+
+Для отдельного класса используйте прямую тестовую задачу:
 
 ```bash
 ./gradlew :rfr-e2e:test --tests '*RegistrationTest'
@@ -94,19 +108,40 @@ API удаления пользователя отсутствует, поэто
 `RandomDataUtils` генерирует уникальный логин, пароль и `TestUser` средствами
 стандартной Java, без дополнительных библиотек. Модель `TestUser` хранит данные.
 
+## Настройки тестов
+
 Все настройки читает `config/TestConfig`: system property → переменная окружения →
 константа fallback. Например, `rfr.front.url` → `RFR_FRONT_URL` → `http://localhost:3001`.
 Префикс system properties — `rfr.`, ENV — `RFR_`; точки в ключах заменяются на `_`.
 Gradle передаёт свойства `rfr.*` в тестовую JVM; тот же формат работает при запуске из IDEA.
+При прямом запуске из IDEA указывайте свойства в VM options, переменные окружения —
+в Environment variables конфигурации запуска. `TestConfig` не читает `.env` интерфейса.
+Эти параметры не изменяют конфигурацию запущенных сервисов.
 
 | System property | ENV | Fallback |
 | --- | --- | --- |
 | `rfr.front.url` | `RFR_FRONT_URL` | `http://localhost:3001` |
 | `rfr.auth.url` | `RFR_AUTH_URL` | `http://localhost:9001` |
 | `rfr.headed` | `RFR_HEADED` | `false`; `true` открывает видимый Chromium |
-| `rfr.db.url` | `RFR_DB_URL` | MySQL на `localhost:3306`, см. `TestConfig` |
+| `rfr.db.url` | `RFR_DB_URL` | `jdbc:mysql://localhost:3306/?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=5000&socketTimeout=10000` |
 | `rfr.db.user` | `RFR_DB_USER` | `root` |
-| `rfr.db.password` | `RFR_DB_PASSWORD` | Обязательная, fallback отсутствует |
+| `rfr.db.password` | `RFR_DB_PASSWORD` | Локальный тестовый пароль из `docker-compose.yml` |
+
+Тайм-аут подключения к БД по умолчанию — 5 секунд, чтения — 10 секунд.
+Каталоги `rangiffler-auth` и `rangiffler-api` выбирает `data/db/Databases`;
+учётной записи нужен доступ к обеим схемам на одном сервере MySQL.
+Пароль по умолчанию совпадает с локальным паролем в `docker-compose.yml`.
+Тесты не читают этот файл автоматически; при смене пароля задайте `RFR_DB_PASSWORD`.
+
+Для другой БД в zsh пароль можно ввести без отображения и сохранения в истории:
+
+```zsh
+read -rs 'RFR_DB_PASSWORD?MySQL password: '
+export RFR_DB_PASSWORD
+```
+
+При смене адресов согласуйте конфигурации серверов, OAuth redirect URI
+и `.env` интерфейса: настройки тестов сами их не изменяют.
 
 Пример запуска с system property:
 
@@ -114,5 +149,5 @@ Gradle передаёт свойства `rfr.*` в тестовую JVM; тот
 ./gradlew :rfr-e2e:test --tests '*RegistrationTest' -Drfr.front.url=http://localhost:3001
 ```
 
-Chromium должен соответствовать версии Playwright из `build.gradle`;
-при первом запуске Playwright загружает недостающие браузеры автоматически.
+Chromium должен соответствовать версии Playwright из `build.gradle`.
+Для явной подготовки окружения используйте `:rfr-e2e:installPlaywright`.
